@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Face Recognition System
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+
+<header class="header">
+
+    <h1>
+        FACE RECOGNITION SYSTEM
+    </h1>
+
+    <p>
+        AI Based Member Identification
+    </p>
+
+</header>
+
+
+<main>
+
+
+<section class="top-section">
+
+
+    <div class="card">
+
+
+        <h2>
+            Member Registration
+        </h2>
+
+
+        <form
+            action="/register-member"
+            method="POST"
+            enctype="multipart/form-data"
+        >
+
+
+            <div
+                class="upload-box"
+                onclick="document.getElementById('memberPhoto').click()"
+            >
+
+
+                <input
+                    type="file"
+                    id="memberPhoto"
+                    name="member_photo"
+                    accept="image/*"
+                    hidden
+                    onchange="previewImage(
+                        this,
+                        'memberPreview',
+                        'memberUploadContent'
+                    )"
+                >
+
+
+                <div id="memberUploadContent">
+
+                    <div class="upload-icon">
+                        +
+                    </div>
+
+                    <h3>
+                        Upload Member Photo
+                    </h3>
+
+                    <p>
+                        Click + to select photo
+                    </p>
+
+                </div>
+
+
+                <img
+                    id="memberPreview"
+                    class="upload-preview"
+                    style="display:none;"
+                >
+
+
+            </div>
+
+
+            <input
+                type="text"
+                name="member_name"
+                class="member-name-input"
+                placeholder="Enter Member Name"
+                required
+            >
+
+
+            <button
+                type="submit"
+                class="register-btn"
+            >
+                REGISTER MEMBER
+            </button>
+
+
+        </form>
+
+
+
+        <div class="registered-members">
+
+
+            <h3>
+                Registered Members
+            </h3>
+
+
+            <div class="member-grid">
+
+
+                {% if members %}
+
+
+                    {% for member in members %}
+
+
+                        <div class="member-card">
+
+
+                            <img
+                                src="{{ member.photo }}"
+                                alt="{{ member.name }}"
+                            >
+
+
+                            <div class="member-name">
+                                {{ member.name }}
+                            </div>
+
+
+                            <button
+                                type="button"
+                                class="edit-btn"
+                                data-id="{{ member.id }}"
+                                data-name="{{ member.name }}"
+                                onclick="openEdit(
+                                    this.dataset.id,
+                                    this.dataset.name
+                                )"
+                            >
+                                EDIT
+                            </button>
+
+
+                            <form
+                                action="{{ url_for(
+                                    'delete_member',
+                                    member_id=member.id
+                                ) }}"
+                                method="POST"
+                                onsubmit="return confirm(
+                                    'Are you sure you want to delete this member?'
+                                )"
+                            >
+
+                                <button
+                                    type="submit"
+                                    class="delete-btn"
+                                >
+                                    DELETE
+                                </button>
+
+                            </form>
+
+
+                        </div>
+
+
+                    {% endfor %}
+
+
+                {% else %}
+
+
+                    <p class="empty-text">
+                        No members registered
+                    </p>
+
+
+                {% endif %}
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+
+    <div class="card">
+
+
+        <h2>
+            Group Image
+        </h2>
+
+
+        <form
+            action="/analyze"
+            method="POST"
+            enctype="multipart/form-data"
+        >
+
+
+            <div
+                class="upload-box"
+                onclick="document.getElementById('groupPhoto').click()"
+            >
+
+
+                <input
+                    type="file"
+                    id="groupPhoto"
+                    name="group_image"
+                    accept="image/*"
+                    hidden
+                    onchange="previewImage(
+                        this,
+                        'groupPreview',
+                        'groupUploadContent'
+                    )"
+                >
+
+
+                <div id="groupUploadContent">
+
+                    <div class="upload-icon">
+                        +
+                    </div>
+
+                    <h3>
+                        Upload Group Image
+                    </h3>
+
+                    <p>
+                        Click + to select group photo
+                    </p>
+
+                </div>
+
+
+                <img
+                    id="groupPreview"
+                    class="upload-preview"
+                    style="display:none;"
+                >
+
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="analyze-btn"
+            >
+                ANALYZE IMAGE
+            </button>
+
+
+        </form>
+
+
+    </div>
+
+
+</section>
+
+
+
+<section class="result-section">
+
+
+    <h2>
+        Recognition Results
+    </h2>
+
+
+
+    <div class="image-result">
+
+
+        <h3>
+            Processed Group Image
+        </h3>
+
+
+        {% if result_image %}
+
+
+            <img
+                src="{{ url_for(
+                    'result_file',
+                    filename=result_image
+                ) }}"
+                class="processed-image"
+                alt="Recognition Result"
+            >
+
+
+        {% else %}
+
+
+            <div class="result-placeholder">
+                No result yet
+            </div>
+
+
+        {% endif %}
+
+
+    </div>
+
+
+
+    {% if results %}
+
+
+        <div class="result-summary">
+
+
+            <div class="summary-box">
+
+                <span class="summary-number">
+                    {{ results|length }}
+                </span>
+
+                <span class="summary-label">
+                    Faces Detected
+                </span>
+
+            </div>
+
+
+            <div class="summary-box matched-summary">
+
+                <span class="summary-number">
+
+                    {{
+                        results
+                        |selectattr("status", "equalto", "Matched")
+                        |list
+                        |length
+                    }}
+
+                </span>
+
+                <span class="summary-label">
+                    Members Matched
+                </span>
+
+            </div>
+
+
+            <div class="summary-box unknown-summary">
+
+                <span class="summary-number">
+
+                    {{
+                        results
+                        |selectattr("status", "equalto", "Unknown")
+                        |list
+                        |length
+                    }}
+
+                </span>
+
+                <span class="summary-label">
+                    Unknown Faces
+                </span>
+
+            </div>
+
+
+        </div>
+
+
+    {% endif %}
+
+
+
+    <div class="table-container">
+
+
+        <table>
+
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Member Photo
+                    </th>
+
+                    <th>
+                        Detected Face
+                    </th>
+
+                    <th>
+                        Name
+                    </th>
+
+                    <th>
+                        Similarity
+                    </th>
+
+                    <th>
+                        Detection Time
+                    </th>
+
+                    <th>
+                        Status
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+
+                {% if results %}
+
+
+                    {% for result in results %}
+
+
+                        <tr>
+
+
+                            <td>
+
+
+                                {% if result.member_photo %}
+
+                                    <img
+                                        src="{{ result.member_photo }}"
+                                        class="table-photo"
+                                        alt="{{ result.name }}"
+                                    >
+
+                                {% else %}
+
+                                    <span class="no-photo">
+                                        —
+                                    </span>
+
+                                {% endif %}
+
+
+                            </td>
+
+
+                            <td>
+
+
+                                {% if result.detected_face %}
+
+                                    <img
+                                        src="{{ url_for(
+                                            'result_file',
+                                            filename=result.detected_face
+                                        ) }}"
+                                        class="table-photo detected-photo"
+                                        alt="Detected Face"
+                                    >
+
+                                {% else %}
+
+                                    <span class="no-photo">
+                                        —
+                                    </span>
+
+                                {% endif %}
+
+
+                            </td>
+
+
+                            <td>
+
+
+                                {% if result.status == "Matched" %}
+
+                                    <strong class="matched-name">
+                                        {{ result.name }}
+                                    </strong>
+
+                                {% else %}
+
+                                    <span class="unknown-name">
+                                        Unknown
+                                    </span>
+
+                                {% endif %}
+
+
+                            </td>
+
+
+                            <td>
+
+                                <span class="similarity">
+
+                                    {{ "%.2f"|format(
+                                        result.similarity
+                                    ) }}%
+
+                                </span>
+
+                            </td>
+
+
+                            <td>
+
+                                <span class="detection-time">
+
+                                    {{ result.detection_time }}
+                                    sec
+
+                                </span>
+
+                            </td>
+
+
+                            <td>
+
+
+                                {% if result.status == "Matched" %}
+
+                                    <span class="status matched">
+                                        MATCHED
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="status unknown">
+                                        UNKNOWN
+                                    </span>
+
+                                {% endif %}
+
+
+                            </td>
+
+
+                        </tr>
+
+
+                    {% endfor %}
+
+
+                {% else %}
+
+
+                    <tr>
+
+                        <td
+                            colspan="6"
+                            class="no-results"
+                        >
+                            No recognition results yet
+                        </td>
+
+                    </tr>
+
+
+                {% endif %}
+
+
+            </tbody>
+
+
+        </table>
+
+
+    </div>
+
+
+</section>
+
+
+</main>
+
+
+
+<div
+    id="editModal"
+    class="edit-modal"
+>
+
+
+    <div class="edit-box">
+
+
+        <h2>
+            Edit Member
+        </h2>
+
+
+        <form
+            id="editForm"
+            method="POST"
+            enctype="multipart/form-data"
+        >
+
+
+            <input
+                type="text"
+                id="editName"
+                name="member_name"
+                class="member-name-input"
+                placeholder="Member Name"
+                required
+            >
+
+
+            <label class="edit-label">
+                Change Photo
+            </label>
+
+
+            <input
+                type="file"
+                name="member_photo"
+                accept="image/*"
+                class="edit-file"
+            >
+
+
+            <button
+                type="submit"
+                class="register-btn"
+            >
+                SAVE CHANGES
+            </button>
+
+
+            <button
+                type="button"
+                class="cancel-btn"
+                onclick="closeEdit()"
+            >
+                CANCEL
+            </button>
+
+
+        </form>
+
+
+    </div>
+
+
+</div>
+
+
+
+<script>
+
+
+function previewImage(
+    input,
+    previewId,
+    contentId
+) {
+
+    if (
+        input.files &&
+        input.files[0]
+    ) {
+
+        const reader =
+            new FileReader();
+
+
+        reader.onload =
+            function(event) {
+
+                const preview =
+                    document.getElementById(
+                        previewId
+                    );
+
+                const content =
+                    document.getElementById(
+                        contentId
+                    );
+
+
+                preview.src =
+                    event.target.result;
+
+
+                preview.style.display =
+                    "block";
+
+
+                content.style.display =
+                    "none";
+
+            };
+
+
+        reader.readAsDataURL(
+            input.files[0]
+        );
+
+    }
+
+}
+
+
+function openEdit(
+    id,
+    name
+) {
+
+    const modal =
+        document.getElementById(
+            "editModal"
+        );
+
+
+    const form =
+        document.getElementById(
+            "editForm"
+        );
+
+
+    const nameInput =
+        document.getElementById(
+            "editName"
+        );
+
+
+    form.action =
+        "/edit-member/" + id;
+
+
+    nameInput.value =
+        name;
+
+
+    modal.style.display =
+        "flex";
+
+}
+
+
+function closeEdit() {
+
+    document.getElementById(
+        "editModal"
+    ).style.display =
+        "none";
+
+}
+
+
+window.onclick =
+    function(event) {
+
+        const modal =
+            document.getElementById(
+                "editModal"
+            );
+
+
+        if (
+            event.target === modal
+        ) {
+
+            modal.style.display =
+                "none";
+
+        }
+
+    };
+
+
+</script>
+
+
+</body>
+
+</html>
